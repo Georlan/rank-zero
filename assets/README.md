@@ -11,3 +11,5 @@ As poses fighter_anticipation.png, fighter_high_guard.png e fighter_caio_hit.png
 assets/fonts: Noto Sans Regular e Noto Sans Condensed ExtraBold; crédito e licença SIL OFL no arquivo LICENSE-NOTO.txt. O lettering RANK ZERO no menu e os pictogramas das cartas foram desenhados em código para o projeto; o lettering não constitui uma família tipográfica completa.
 
 `cards/jab.png`, `cards/guard.png`, `cards/feint.png`, `cards/throw.png` e `cards/counter.png`: cinco ilustrações de técnicas geradas separadamente pela ferramenta integrada de imagens da OpenAI. Direção dos prompts: arte original de combate em tinta, azul, marfim e grafite, sem texto, borda ou marca; respectivamente punho direto, guarda alta, finta, projeção de quadril e esquiva com contra. São ilustrações conceituais das técnicas, não retratos canônicos dos personagens. As imagens são estáticas; o componente da Godot adiciona os estados interativos de seleção, foco e indisponibilidade.
+
+Direção atual: assets/pixel/ reúne cenários e folhas de personagens usadas no jogo; ver README dessa pasta. Recursos anteriores em art/ e cards/ permanecem como histórico e não são usados na apresentação atual.

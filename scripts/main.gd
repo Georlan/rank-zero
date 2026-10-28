@@ -3,8 +3,9 @@ const Combat = preload("res://scripts/combat.gd")
 const Cards = preload("res://data/cards.gd")
 const Style = preload("res://scripts/ui_style.gd")
 const CardView = preload("res://scripts/card_view.gd")
-const Rooftop = preload("res://assets/art/rooftop_empty.png")
-const TitleArt = preload("res://assets/art/rooftop_duel.png")
+const Rooftop = preload("res://assets/pixel/rooftop.png")
+const RoomArt = preload("res://assets/pixel/training_room.png")
+const TitleArt = preload("res://assets/pixel/rooftop.png")
 const FighterActor = preload("res://scripts/fighter_actor.gd")
 var battle = Combat.new()
 var screen := "title"
@@ -15,8 +16,12 @@ var rival_actor: Node2D
 var pending_jab_result := ""
 var fight_serial := 0
 var result_visible := false
+var run_cards: Array = []
+var room_choice := ""
+const ROOM_OPTIONS = ["feint", "throw", "counter"]
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
  hero_actor = FighterActor.new(); hero_actor.setup(true); hero_actor.position = Vector2(270, 425); add_child(hero_actor)
  rival_actor = FighterActor.new(); rival_actor.setup(false); rival_actor.position = Vector2(995, 425); add_child(rival_actor)
  hero_actor.jab_impact.connect(_jab_impact)
@@ -31,9 +36,9 @@ func _button(label: String, pos: Vector2, size: Vector2, callback: Callable, col
  b.add_theme_font_size_override("font_size", 18)
  b.add_theme_font_override("font", Style.DISPLAY)
  b.add_theme_color_override("font_color", Color("eef7ff"))
- var box = StyleBoxFlat.new(); box.bg_color = color; box.border_color = Color("7ce9f2"); box.set_border_width_all(1); box.set_corner_radius_all(3); box.content_margin_left = 10; box.content_margin_right = 10
+ var box = StyleBoxFlat.new(); box.bg_color = Color("5d4650"); box.border_color = Color("c69578"); box.set_border_width_all(1); box.set_corner_radius_all(3); box.content_margin_left = 10; box.content_margin_right = 10
  b.add_theme_stylebox_override("normal", box)
- var hover = box.duplicate(); hover.bg_color = color.lightened(0.18); b.add_theme_stylebox_override("hover", hover)
+ var hover = box.duplicate(); hover.bg_color = Color("835d5a"); b.add_theme_stylebox_override("hover", hover)
  var disabled = box.duplicate(); disabled.bg_color = Color("17202b"); disabled.border_color = Color("384554"); b.add_theme_stylebox_override("disabled", disabled)
  b.pressed.connect(callback)
  add_child(b); buttons.append(b)
@@ -41,18 +46,28 @@ func _button(label: String, pos: Vector2, size: Vector2, callback: Callable, col
 func _show_title() -> void:
  fight_serial += 1; pending_jab_result = ""
  screen = "title"; hero_actor.reset_actor(); rival_actor.reset_actor(); hero_actor.hide(); rival_actor.hide(); _clear_buttons()
- _button("ENTRAR NO COMBATE", Vector2(90, 510), Vector2(300, 58), _start, Color("18556a"))
+ _button("ENTRAR NO COMBATE", Vector2(90, 510), Vector2(300, 58), _new_run, Color("18556a"))
+ _button("TESTAR SALA DE TÉCNICAS", Vector2(90, 582), Vector2(300, 48), _test_room)
  queue_redraw()
+func _new_run() -> void:
+ run_cards.clear()
+ _start()
+func _test_room() -> void:
+ run_cards.clear()
+ _show_room()
 func _start() -> void:
  fight_serial += 1; pending_jab_result = ""; result_visible = false
  hero_actor.reset_actor(); rival_actor.reset_actor()
- battle.start(randi()); screen = "battle"; hero_actor.show(); rival_actor.show(); _refresh()
+ battle.start(randi(), run_cards); screen = "battle"; hero_actor.show(); rival_actor.show(); _refresh()
 func _refresh() -> void:
  _clear_buttons()
  if battle.result != "":
   result_visible = true
   hero_actor.hide(); rival_actor.hide()
-  _button("JOGAR NOVAMENTE", Vector2(485, 480), Vector2(310, 58), _start, Color("13505d"))
+  if battle.result == "vitória":
+   _button("EXPLORAR SALA", Vector2(485, 480), Vector2(310, 58), _show_room, Color("13505d"))
+  else:
+   _button("TENTAR NOVAMENTE", Vector2(485, 480), Vector2(310, 58), _new_run, Color("13505d"))
   _button("MENU", Vector2(485, 550), Vector2(310, 45), _show_title)
  else:
   for i in range(battle.hand.size()):
@@ -65,6 +80,39 @@ func _refresh() -> void:
    add_child(view); buttons.append(view)
   _button("ENCERRAR TURNO", Vector2(1040, 533), Vector2(205, 60), _end_turn, Color("174459"))
  queue_redraw()
+func _show_room() -> void:
+ fight_serial += 1
+ pending_jab_result = ""; room_choice = ""; screen = "room"
+ hero_actor.reset_actor(); rival_actor.reset_actor()
+ hero_actor.hide(); rival_actor.hide()
+ _refresh_room()
+func _refresh_room() -> void:
+ _clear_buttons()
+ for i in range(ROOM_OPTIONS.size()):
+  var id: String = ROOM_OPTIONS[i]
+  var view = CardView.new()
+  view.position = Vector2(316 + i * 224, 292)
+  view.size = Vector2(196, 204)
+  view.configure(Cards.ALL[id], true)
+  view.chosen = room_choice == id
+  view.selected.connect(_select_room_card.bind(id))
+  add_child(view); buttons.append(view)
+ var confirm = _button("ADICIONAR AO DECK", Vector2(386, 568), Vector2(260, 55), _confirm_room, Color("18556a"))
+ confirm.disabled = room_choice == ""
+ if room_choice != "": confirm.grab_focus()
+ _button("SEGUIR SEM CARTA", Vector2(662, 568), Vector2(238, 55), _skip_room)
+ queue_redraw()
+func _select_room_card(id: String) -> void:
+ if screen != "room" or not id in ROOM_OPTIONS: return
+ room_choice = id
+ _refresh_room()
+func _confirm_room() -> void:
+ if screen != "room" or not room_choice in ROOM_OPTIONS: return
+ run_cards.append(room_choice)
+ room_choice = ""
+ _start()
+func _skip_room() -> void:
+ if screen == "room": _start()
 func _play(index: int) -> void:
  if index < 0 or index >= battle.hand.size(): return
  var id: String = battle.hand[index]
@@ -136,19 +184,32 @@ func _mark(label: String, x: float, y: float, scale: float, color: Color) -> voi
    draw_polyline(points, color, maxf(3.0, scale*0.09), true)
   cursor += scale * 0.94
 func _draw() -> void:
- draw_texture_rect(TitleArt if screen == "title" else Rooftop, Rect2(0,0,1280,720), false)
+ var backdrop = TitleArt if screen == "title" else RoomArt if screen == "room" else Rooftop
+ draw_texture_rect(backdrop, Rect2(0,0,1280,720), false)
  draw_rect(Rect2(0,0,1280,720), Color(0.01,0.035,0.07,0.28))
  if screen == "title":
   draw_rect(Rect2(0,0,605,720), Color(0.02,0.07,0.12,0.93))
-  draw_line(Vector2(65,76),Vector2(65,572),Color("5bcfe1"),2)
+  draw_line(Vector2(65,76),Vector2(65,572),Color("bd8e74"),2)
   _text("UM CONFRONTO. UM NOVO COMEÇO.",90,110,14,Style.CYAN)
-  _mark("RANK", 90, 175, 75, Style.TEXT)
-  _mark("ZERO", 90, 275, 75, Style.CYAN)
+  _display("RANK", 90, 245, 100, Style.TEXT)
+  _display("ZERO", 90, 345, 100, Color("eeb784"))
   draw_line(Vector2(90,395),Vector2(430,395),Color("497a8f"),1)
   _display("ASCENDA A PARTIR DO NADA",90,437,23,Style.TEXT)
   _text("Protótipo de combate · 1 contra 1",90,469,14,Style.MUTED)
   return
- draw_texture_rect_region(Rooftop, Rect2(0,0,1280,445), Rect2(0,120,1956,684))
+ if screen == "room":
+  draw_rect(Rect2(0,0,1280,720), Color(0.02,0.04,0.08,0.16))
+  draw_rect(Rect2(0,0,1280,280), Color(0.025,0.05,0.07,0.78))
+  draw_rect(Rect2(0,510,1280,150), Color(0.025,0.05,0.07,0.85))
+  draw_line(Vector2(300,107),Vector2(300,244),Color("baaa8e"),2)
+  _text("ESCOLA  /  SALA DE TÉCNICAS", 330, 133, 14, Color("d6c8ab"))
+  _display("ESCOLHA UMA TÉCNICA", 330, 179, 34, Style.TEXT)
+  _text("Uma carta entra no deck desta tentativa.", 330, 216, 15, Style.TEXT)
+  _text("Os custos das cartas são de energia em combate.", 330, 241, 13, Style.MUTED)
+  _text("A próxima luta começa com vida cheia.", 330, 263, 13, Style.MUTED)
+  _text("Selecionada: " + (Cards.ALL[room_choice].name if room_choice != "" else "nenhuma"), 330, 543, 15, Color("d6c8ab"))
+  return
+ draw_texture_rect_region(Rooftop, Rect2(0,0,1280,445), Rect2(0,200,1672,580))
  draw_rect(Rect2(0,0,1280,445), Color(0.02,0.04,0.08,0.12))
  draw_rect(Rect2(0,0,1280,42),Color(0.025,0.08,0.13,0.95))
  _display("RANK ZERO",30,29,20,Style.TEXT)
@@ -168,12 +229,12 @@ func _draw() -> void:
  _display(str(battle.enemy_guard),1195,105,16,Style.CYAN)
  draw_rect(Rect2(40,118,285,5), Color("284454")); draw_rect(Rect2(40,118,285.0*battle.hp/50,5), Style.CYAN)
  draw_rect(Rect2(950,118,285,5), Color("4f3940")); draw_rect(Rect2(950,118,285.0*battle.enemy_hp/45,5), Style.CORAL)
- draw_line(Vector2(374,58),Vector2(374,119),Color("75b4c3"),2)
+ draw_line(Vector2(374,58),Vector2(374,119),Color("bd8e74"),2)
  _text("INTENÇÃO DO RIVAL",390,76,11,Style.MUTED)
  _display(battle.intent.label,390,101,18,Style.CORAL)
  _text("Abertura %d    Desequilíbrio %d" % [battle.opening,battle.off_balance],630,101,12,Style.TEXT)
  draw_rect(Rect2(0,445,1280,275),Color(0.025,0.07,0.115,0.97))
- draw_line(Vector2(0,445),Vector2(1280,445),Color("71dbe9"),2)
+ draw_line(Vector2(0,445),Vector2(1280,445),Color("bd8e74"),2)
  _display("SISTEMA",32,476,17,Style.CYAN)
  _text("ENERGIA",145,475,12,Style.MUTED)
  for i in range(3):

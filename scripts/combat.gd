@@ -16,11 +16,14 @@ var discard: Array = []
 var intent: Dictionary = {}
 var result := ""
 var log := "O confronto começou."
-func start(seed_value: int = 1) -> void:
+func start(seed_value: int = 1, extra_cards: Array = []) -> void:
  rng.seed = seed_value
  hp = 50; enemy_hp = 45; guard = 0; enemy_guard = 0; energy = 3
  opening = 0; off_balance = 0; counter = 0; turn = 1; result = ""
+ log = "O confronto começou."
  hand = []; discard = []; deck = Cards.STARTER.duplicate()
+ for id in extra_cards:
+  if Cards.ALL.has(id): deck.append(id)
  _shuffle(deck)
  _draw(5)
  _choose_intent()
