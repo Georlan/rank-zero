@@ -1,9 +1,11 @@
 extends Control
 const Combat = preload("res://scripts/combat.gd")
 const Cards = preload("res://data/cards.gd")
+const CardView = preload("res://scripts/card_view.gd")
+const Rooftop = preload("res://assets/art/rooftop_duel.png")
 var battle = Combat.new()
 var screen := "title"
-var buttons: Array[Button] = []
+var buttons: Array[Control] = []
 var flash := 0.0
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -38,13 +40,13 @@ func _refresh() -> void:
  else:
   for i in range(battle.hand.size()):
    var card: Dictionary = Cards.ALL[battle.hand[i]]
-   var color = Color("243d4c") if card.effect in ["guard", "counter"] else Color("4a2938") if card.effect in ["damage", "throw"] else Color("393450")
-   var label = "%s     %d ⚡\n%s\n\n%s" % [card.name, card.cost, card.type, card.description]
-   var b = _button(label, Vector2(38 + i * 205, 505), Vector2(195, 177), _play.bind(i), color)
-   b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-   b.add_theme_font_size_override("font_size", 15)
-   b.disabled = card.cost > battle.energy
-  _button("ENCERRAR TURNO  →", Vector2(1070, 565), Vector2(175, 75), _end_turn, Color("284857"))
+   var view = CardView.new()
+   view.position = Vector2(32 + i * 197, 501)
+   view.size = Vector2(186, 177)
+   view.configure(card, card.cost <= battle.energy)
+   view.selected.connect(_play.bind(i))
+   add_child(view); buttons.append(view)
+  _button("ENCERRAR\nTURNO  →", Vector2(1040, 520), Vector2(205, 86), _end_turn, Color("193e4b"))
  queue_redraw()
 func _play(index: int) -> void:
  if battle.play(index):
@@ -72,23 +74,20 @@ func _fighter(x: float, y: float, rival: bool) -> void:
  draw_line(Vector2(x-30,y+25), Vector2(x-43,y+105), Color("151d2b"), 22)
  draw_line(Vector2(x+25,y+25), Vector2(x+42,y+105), Color("151d2b"), 22)
 func _draw() -> void:
- draw_rect(Rect2(0,0,1280,720), Color("0b101b"))
- draw_rect(Rect2(0,0,1280,445), Color("111d2b"))
- for i in range(15):
-  var x = i * 95
-  draw_rect(Rect2(x, 220 - (i % 3)*35, 78, 220), Color("172637"))
-  draw_line(Vector2(x,440), Vector2(x+220,315), Color("26384a"), 1)
- draw_rect(Rect2(0,440,1280,280), Color("0d1420"))
- draw_line(Vector2(0,440), Vector2(1280,440), Color("54c8d6"), 2)
+ draw_texture_rect(Rooftop, Rect2(0,0,1280,720), false)
+ draw_rect(Rect2(0,0,1280,720), Color(0.02,0.04,0.08,0.24))
  if screen == "title":
-  _text("SISTEMA // ARQUIVO 001", 90, 100, 16, Color("58d8e6"))
+  draw_rect(Rect2(0,0,620,720), Color(0.025,0.045,0.075,0.80))
+  _text("SISTEMA  /  ARQUIVO 001", 90, 100, 16, Color("58d8e6"))
   _text("RANK", 82, 240, 100)
   _text("ZERO", 82, 335, 100, Color("61dbe5"))
   _text("ASCENDA A PARTIR DO NADA.", 90, 390, 20, Color("aabcc9"))
-  _fighter(910, 390, false); _fighter(1090, 410, true)
   _text("PROTÓTIPO  /  COMBATE 1×1", 90, 465, 16, Color("aabcc9"))
   return
- _fighter(290, 335, false); _fighter(960, 335, true)
+ draw_rect(Rect2(0,0,1280,150), Color(0.025,0.045,0.075,0.85))
+ draw_rect(Rect2(0,445,1280,275), Color(0.025,0.045,0.075,0.96))
+ draw_line(Vector2(0,445), Vector2(1280,445), Color("54c8d6"), 2)
+ draw_rect(Rect2(720,155,515,78), Color(0.025,0.045,0.075,0.87))
  _text("RANK ZERO   //   CONFRONTO 01", 35, 38, 19, Color("6ee2ed"))
  _text("TURNO %d" % battle.turn, 1120, 38, 18)
  _text("PROTAGONISTA", 60, 89, 19)
