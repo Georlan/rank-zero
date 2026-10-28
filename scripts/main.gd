@@ -1,6 +1,7 @@
 extends Control
 const Combat = preload("res://scripts/combat.gd")
 const Cards = preload("res://data/cards.gd")
+const Style = preload("res://scripts/ui_style.gd")
 const CardView = preload("res://scripts/card_view.gd")
 const Rooftop = preload("res://assets/art/rooftop_empty.png")
 const FighterActor = preload("res://scripts/fighter_actor.gd")
@@ -27,8 +28,9 @@ func _button(label: String, pos: Vector2, size: Vector2, callback: Callable, col
  b.text = label
  b.position = pos; b.size = size
  b.add_theme_font_size_override("font_size", 18)
+ b.add_theme_font_override("font", Style.DISPLAY)
  b.add_theme_color_override("font_color", Color("eef7ff"))
- var box = StyleBoxFlat.new(); box.bg_color = color; box.border_color = Color("59d9e8"); box.set_border_width_all(1); box.set_corner_radius_all(4); box.content_margin_left = 10; box.content_margin_right = 10
+ var box = StyleBoxFlat.new(); box.bg_color = color; box.border_color = Color("7ce9f2"); box.set_border_width_all(1); box.set_corner_radius_all(3); box.content_margin_left = 10; box.content_margin_right = 10
  b.add_theme_stylebox_override("normal", box)
  var hover = box.duplicate(); hover.bg_color = color.lightened(0.18); b.add_theme_stylebox_override("hover", hover)
  var disabled = box.duplicate(); disabled.bg_color = Color("17202b"); disabled.border_color = Color("384554"); b.add_theme_stylebox_override("disabled", disabled)
@@ -38,7 +40,7 @@ func _button(label: String, pos: Vector2, size: Vector2, callback: Callable, col
 func _show_title() -> void:
  fight_serial += 1; pending_jab_result = ""
  screen = "title"; hero_actor.reset_actor(); rival_actor.reset_actor(); hero_actor.hide(); rival_actor.hide(); _clear_buttons()
- _button("INICIAR CONFRONTO  →", Vector2(90, 510), Vector2(310, 58), _start, Color("13505d"))
+ _button("ENTRAR NO COMBATE", Vector2(90, 510), Vector2(300, 58), _start, Color("18556a"))
  queue_redraw()
 func _start() -> void:
  fight_serial += 1; pending_jab_result = ""; result_visible = false
@@ -60,7 +62,7 @@ func _refresh() -> void:
    view.configure(card, card.cost <= battle.energy)
    view.selected.connect(_play.bind(i))
    add_child(view); buttons.append(view)
-  _button("ENCERRAR\nTURNO  →", Vector2(1040, 520), Vector2(205, 86), _end_turn, Color("193e4b"))
+  _button("ENCERRAR TURNO", Vector2(1040, 533), Vector2(205, 60), _end_turn, Color("174459"))
  queue_redraw()
 func _play(index: int) -> void:
  if index < 0 or index >= battle.hand.size(): return
@@ -106,40 +108,81 @@ func _pulse() -> void:
 func _process(_delta: float) -> void:
  if flash > 0.0: queue_redraw()
 func _text(value: String, x: float, y: float, size: int, color: Color = Color("ecf5fa")) -> void:
- draw_string(ThemeDB.fallback_font, Vector2(x,y), value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+ draw_string(Style.BODY, Vector2(x,y), value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+func _display(value: String, x: float, y: float, size: int, color: Color = Style.TEXT) -> void:
+ draw_string(Style.DISPLAY, Vector2(x,y), value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+func _panel(rect: Rect2, edge: Color = Color("588a9d")) -> void:
+ draw_rect(rect, Color(0.035, 0.10, 0.16, 0.91))
+ draw_rect(rect, edge, false, 1)
+ draw_line(rect.position, rect.position + Vector2(24, 0), Style.CYAN, 2)
+func _mark(label: String, x: float, y: float, scale: float, color: Color) -> void:
+ # Original geometric wordmark, not a general-purpose typeface.
+ var paths = {
+  "R": [[0,1,0,0,0.72,0,1,0.22,0.72,0.47,0,0.47],[0.46,0.47,1,1]],
+  "A": [[0,1,0.45,0,0.60,0,1,1],[0.18,0.63,0.82,0.63]],
+  "N": [[0,1,0,0,1,1,1,0]],
+  "K": [[0,0,0,1],[1,0,0.05,0.55,1,1]],
+  "Z": [[0,0,1,0,0,1,1,1]],
+  "E": [[1,0,0,0,0,1,1,1],[0,0.5,0.78,0.5]],
+  "O": [[0.18,0,0.82,0,1,0.18,1,0.82,0.82,1,0.18,1,0,0.82,0,0.18,0.18,0]]
+ }
+ var cursor = x
+ for letter in label:
+  if letter == " ": cursor += scale * 0.35; continue
+  for path in paths.get(letter, []):
+   var points = PackedVector2Array()
+   for i in range(0,path.size(),2): points.append(Vector2(cursor + path[i]*scale*0.7, y + path[i+1]*scale))
+   draw_polyline(points, color, maxf(3.0, scale*0.09), true)
+  cursor += scale * 0.94
 func _draw() -> void:
  draw_texture_rect(Rooftop, Rect2(0,0,1280,720), false)
- draw_rect(Rect2(0,0,1280,720), Color(0.02,0.04,0.08,0.24))
+ draw_rect(Rect2(0,0,1280,720), Color(0.01,0.035,0.07,0.28))
  if screen == "title":
-  draw_rect(Rect2(0,0,620,720), Color(0.025,0.045,0.075,0.80))
-  _text("SISTEMA  /  ARQUIVO 001", 90, 100, 16, Color("58d8e6"))
-  _text("RANK", 82, 240, 100)
-  _text("ZERO", 82, 335, 100, Color("61dbe5"))
-  _text("ASCENDA A PARTIR DO NADA.", 90, 390, 20, Color("aabcc9"))
-  _text("PROTÓTIPO  /  COMBATE 1×1", 90, 465, 16, Color("aabcc9"))
+  draw_rect(Rect2(0,0,605,720), Color(0.02,0.07,0.12,0.93))
+  draw_line(Vector2(65,76),Vector2(65,572),Color("5bcfe1"),2)
+  _text("UM CONFRONTO. UM NOVO COMEÇO.",90,110,14,Style.CYAN)
+  _mark("RANK", 90, 175, 75, Style.TEXT)
+  _mark("ZERO", 90, 275, 75, Style.CYAN)
+  draw_line(Vector2(90,395),Vector2(430,395),Color("497a8f"),1)
+  _display("ASCENDA A PARTIR DO NADA",90,437,23,Style.TEXT)
+  _text("Protótipo de combate · 1 contra 1",90,469,14,Style.MUTED)
   return
- # Frame the floor inside the playable arena, above the card tray.
  draw_texture_rect_region(Rooftop, Rect2(0,0,1280,445), Rect2(0,120,1956,684))
- draw_rect(Rect2(0,0,1280,445), Color(0.02,0.04,0.08,0.14))
- draw_rect(Rect2(0,0,1280,150), Color(0.025,0.045,0.075,0.85))
- draw_rect(Rect2(0,445,1280,275), Color(0.025,0.045,0.075,0.96))
- draw_line(Vector2(0,445), Vector2(1280,445), Color("54c8d6"), 2)
- draw_rect(Rect2(430,53,420,72), Color(0.025,0.045,0.075,0.87))
- _text("RANK ZERO   //   CONFRONTO 01", 35, 38, 19, Color("6ee2ed"))
- _text("TURNO %d" % battle.turn, 1120, 38, 18)
- _text("PROTAGONISTA", 60, 89, 19)
- _text("VIDA %d / 50     GUARDA %d" % [battle.hp, battle.guard], 60, 118, 18, Color("8ce2ee"))
- _text("RIVAL  /  CAIO", 868, 89, 19)
- _text("VIDA %d / 45     GUARDA %d" % [battle.enemy_hp, battle.enemy_guard], 868, 118, 18, Color("ffa5a5"))
- draw_rect(Rect2(60,130,300,7), Color("283b49")); draw_rect(Rect2(60,130,300.0*battle.hp/50,7), Color("5bd6e2"))
- draw_rect(Rect2(868,130,300,7), Color("49303a")); draw_rect(Rect2(868,130,300.0*battle.enemy_hp/45,7), Color("f17b81"))
- _text("INTENÇÃO: " + battle.intent.label, 450, 77, 18, Color("ffc78d"))
- _text("ABERTURA %d   ·   DESEQUILÍBRIO %d" % [battle.opening, battle.off_balance], 450, 105, 16, Color("c7d5df"))
- _text("SISTEMA  /  ENERGIA %d / 3     CONTRA %d" % [battle.energy, battle.counter], 38, 475, 18, Color("73dce7"))
- _text("%s  ·  COMPRA %d  /  DESCARTE %d" % [battle.log, battle.deck.size(), battle.discard.size()], 38, 708, 14, Color("9db1bf"))
+ draw_rect(Rect2(0,0,1280,445), Color(0.02,0.04,0.08,0.12))
+ draw_rect(Rect2(0,0,1280,42),Color(0.025,0.08,0.13,0.95))
+ _display("RANK ZERO",30,29,20,Style.TEXT)
+ _text("CONFRONTO",165,28,12,Style.MUTED)
+ _display("TURNO %d" % battle.turn,1160,28,16,Style.CYAN)
+ _panel(Rect2(25,54,320,83))
+ _panel(Rect2(935,54,320,83), Color("a56d6c"))
+ _display("PROTAGONISTA",40,78,17,Style.TEXT)
+ _display("CAIO",950,78,17,Style.TEXT)
+ _text("VIDA",40,104,11,Style.MUTED)
+ _display("%d / 50" % battle.hp,78,105,16,Style.TEXT)
+ _text("GUARDA",220,104,11,Style.MUTED)
+ _display(str(battle.guard),285,105,16,Style.CYAN)
+ _text("VIDA",950,104,11,Style.MUTED)
+ _display("%d / 45" % battle.enemy_hp,988,105,16,Style.TEXT)
+ _text("GUARDA",1130,104,11,Style.MUTED)
+ _display(str(battle.enemy_guard),1195,105,16,Style.CYAN)
+ draw_rect(Rect2(40,118,285,5), Color("284454")); draw_rect(Rect2(40,118,285.0*battle.hp/50,5), Style.CYAN)
+ draw_rect(Rect2(950,118,285,5), Color("4f3940")); draw_rect(Rect2(950,118,285.0*battle.enemy_hp/45,5), Style.CORAL)
+ _panel(Rect2(374,54,532,83), Color("688b9d"))
+ _text("INTENÇÃO DO RIVAL",390,76,11,Style.MUTED)
+ _display(battle.intent.label,390,101,18,Style.CORAL)
+ _text("Abertura %d    Desequilíbrio %d" % [battle.opening,battle.off_balance],630,101,12,Style.TEXT)
+ draw_rect(Rect2(0,445,1280,275),Color(0.025,0.07,0.115,0.97))
+ draw_line(Vector2(0,445),Vector2(1280,445),Color("71dbe9"),2)
+ _display("SISTEMA",32,478,19,Style.CYAN)
+ _text("ENERGIA",145,476,12,Style.MUTED)
+ for i in range(3):
+  draw_circle(Vector2(226 + i*23,471),7,Style.CYAN if i < battle.energy else Color("365364"))
+ _text("CONTRA %d" % battle.counter,320,476,12,Style.MUTED)
+ _text("%s  ·  COMPRA %d  /  DESCARTE %d" % [battle.log, battle.deck.size(), battle.discard.size()], 38, 708, 12, Style.MUTED)
  if flash > 0: draw_rect(Rect2(0,0,1280,440), Color(0.5,0.9,1.0,flash * 0.2))
  if battle.result != "" and result_visible:
-  draw_rect(Rect2(0,0,1280,720), Color(0.02,0.04,0.08,0.91))
-  _text("CONFRONTO ENCERRADO", 470, 250, 22, Color("72dce7"))
-  _text(battle.result.to_upper(), 465, 350, 70)
-  _text("O resultado desta luta é apenas o início.", 465, 405, 18, Color("b2c4cd"))
+  draw_rect(Rect2(0,0,1280,720), Color(0.02,0.04,0.08,0.94))
+  _panel(Rect2(430,205,420,230))
+  _text("CONFRONTO ENCERRADO",468,251,15,Style.CYAN)
+  _display(battle.result.to_upper(),468,340,62,Style.TEXT)
+  _text("O resultado desta luta é apenas o início.",468,397,14,Style.MUTED)
