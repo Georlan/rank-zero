@@ -3,19 +3,17 @@ const Combat = preload("res://scripts/combat.gd")
 const Cards = preload("res://data/cards.gd")
 const CardView = preload("res://scripts/card_view.gd")
 const Rooftop = preload("res://assets/art/rooftop_empty.png")
-const Hero = preload("res://assets/art/fighter_protagonist.png")
-const Rival = preload("res://assets/art/fighter_caio.png")
+const FighterActor = preload("res://scripts/fighter_actor.gd")
 var battle = Combat.new()
 var screen := "title"
 var buttons: Array[Control] = []
 var flash := 0.0
-var hero_shift := 0.0
-var rival_shift := 0.0
-var elapsed := 0.0
-var hero_tween: Tween
-var rival_tween: Tween
+var hero_actor: Node2D
+var rival_actor: Node2D
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ hero_actor = FighterActor.new(); hero_actor.setup(true); hero_actor.position = Vector2(270, 425); add_child(hero_actor)
+ rival_actor = FighterActor.new(); rival_actor.setup(false); rival_actor.position = Vector2(995, 425); add_child(rival_actor)
  _show_title()
 func _clear_buttons() -> void:
  for b in buttons: b.queue_free()
@@ -34,14 +32,15 @@ func _button(label: String, pos: Vector2, size: Vector2, callback: Callable, col
  add_child(b); buttons.append(b)
  return b
 func _show_title() -> void:
- screen = "title"; _clear_buttons()
+ screen = "title"; hero_actor.hide(); rival_actor.hide(); _clear_buttons()
  _button("INICIAR CONFRONTO  →", Vector2(90, 510), Vector2(310, 58), _start, Color("13505d"))
  queue_redraw()
 func _start() -> void:
- battle.start(randi()); screen = "battle"; hero_shift = 0; rival_shift = 0; _refresh()
+ battle.start(randi()); screen = "battle"; hero_actor.show(); rival_actor.show(); _refresh()
 func _refresh() -> void:
  _clear_buttons()
  if battle.result != "":
+  hero_actor.hide(); rival_actor.hide()
   _button("JOGAR NOVAMENTE", Vector2(485, 480), Vector2(310, 58), _start, Color("13505d"))
   _button("MENU", Vector2(485, 550), Vector2(310, 45), _show_title)
  else:
@@ -57,43 +56,25 @@ func _refresh() -> void:
  queue_redraw()
 func _play(index: int) -> void:
  if index < 0 or index >= battle.hand.size(): return
- var effect: String = Cards.ALL[battle.hand[index]].effect
+ var id: String = battle.hand[index]
+ var effect: String = Cards.ALL[id].effect
  if battle.play(index):
-  if effect in ["damage", "throw"]:
-   _move_fighter(true, 35.0)
-   _move_fighter(false, 12.0)
-  elif effect in ["guard", "counter"]:
-   _move_fighter(true, -9.0)
-  else:
-   _move_fighter(true, 14.0)
+  hero_actor.action("jab" if id == "jab" else effect)
+  if effect in ["damage", "throw"]: rival_actor.action("hit")
   _pulse(); _refresh()
 func _end_turn() -> void:
  var offensive: bool = battle.intent.get("kind", "") != "guard"
  battle.end_turn()
- if offensive:
-  _move_fighter(false, -35.0)
-  _move_fighter(true, -12.0)
- else:
-  _move_fighter(false, 9.0)
+ rival_actor.action("attack" if offensive else "guard")
+ if offensive: hero_actor.action("hit")
  _pulse(); _refresh()
-func _move_fighter(hero: bool, distance: float) -> void:
- # Pure presentation: combat is already resolved and never waits for animation.
- if hero and is_instance_valid(hero_tween): hero_tween.kill()
- if not hero and is_instance_valid(rival_tween): rival_tween.kill()
- var tween = create_tween()
- if hero: hero_tween = tween
- else: rival_tween = tween
- var property = "hero_shift" if hero else "rival_shift"
- tween.tween_property(self, property, distance, 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
- tween.tween_property(self, property, 0.0, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 func _pulse() -> void:
  flash = 0.55
  var tween = create_tween()
  tween.tween_property(self, "flash", 0.0, 0.3)
  tween.tween_callback(queue_redraw)
-func _process(delta: float) -> void:
- elapsed += delta
- if screen == "battle": queue_redraw()
+func _process(_delta: float) -> void:
+ if flash > 0.0: queue_redraw()
 func _text(value: String, x: float, y: float, size: int, color: Color = Color("ecf5fa")) -> void:
  draw_string(ThemeDB.fallback_font, Vector2(x,y), value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 func _draw() -> void:
@@ -107,10 +88,9 @@ func _draw() -> void:
   _text("ASCENDA A PARTIR DO NADA.", 90, 390, 20, Color("aabcc9"))
   _text("PROTÓTIPO  /  COMBATE 1×1", 90, 465, 16, Color("aabcc9"))
   return
- # Independent transparent character layers; subtle idle sway and action offsets.
- var idle = sin(elapsed * 2.1) * 2.0
- draw_texture_rect(Hero, Rect2(155 + hero_shift, 163 + idle, 232, 283), false)
- draw_texture_rect(Rival, Rect2(880 + rival_shift, 163 - idle, 232, 283), false)
+ # Frame the floor inside the playable arena, above the card tray.
+ draw_texture_rect_region(Rooftop, Rect2(0,0,1280,445), Rect2(0,120,1956,684))
+ draw_rect(Rect2(0,0,1280,445), Color(0.02,0.04,0.08,0.14))
  draw_rect(Rect2(0,0,1280,150), Color(0.025,0.045,0.075,0.85))
  draw_rect(Rect2(0,445,1280,275), Color(0.025,0.045,0.075,0.96))
  draw_line(Vector2(0,445), Vector2(1280,445), Color("54c8d6"), 2)
