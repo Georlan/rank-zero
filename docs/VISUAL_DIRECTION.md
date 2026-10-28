@@ -15,3 +15,7 @@ As imagens e GIFs fornecidos pelo usuário servem de referência para composiç�
 A marca RANK ZERO do menu é desenhada com traços geométricos próprios no código, como lettering específico para o título; não é uma fonte completa. Para leitura, o projeto inclui Noto Sans Regular e Noto Sans Condensed ExtraBold, distribuídas sob licença SIL Open Font License 1.1, com texto e créditos em assets/fonts/LICENSE-NOTO.txt.
 
 Painéis escuros semitransparentes mantêm dados sobre a arena; ciano representa Sistema e defesa, coral destaca ataques e intenções, violeta distingue condições. Os símbolos de ataque, defesa, efeito e reação são desenhados por código para o projeto. As cartas mantêm texto e custo reais de data/cards.gd, com estado de energia, foco de teclado e destaque ao passar o mouse. Referências de jogos fornecidas pelo usuário orientaram a hierarquia e a relação entre arena e mão, sem distribuir imagens ou elementos desses jogos.
+
+## Cartas ilustradas
+
+Cada técnica possui ilustração separada em assets/cards; a carta interativa é montada em scripts/card_view.gd, com texto e custo dos dados de jogo. Ao passar o mouse ou receber foco do teclado, a carta sobe levemente e destaca sua borda; sem energia suficiente, fica dessaturada e não pode ser ativada. As imagens são interpretações conceituais de técnicas, não representam os personagens oficiais do jogo. O cabeçalho usa uma faixa discreta para preservar a arena.

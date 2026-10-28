@@ -4,6 +4,7 @@ const Cards = preload("res://data/cards.gd")
 const Style = preload("res://scripts/ui_style.gd")
 const CardView = preload("res://scripts/card_view.gd")
 const Rooftop = preload("res://assets/art/rooftop_empty.png")
+const TitleArt = preload("res://assets/art/rooftop_duel.png")
 const FighterActor = preload("res://scripts/fighter_actor.gd")
 var battle = Combat.new()
 var screen := "title"
@@ -57,8 +58,8 @@ func _refresh() -> void:
   for i in range(battle.hand.size()):
    var card: Dictionary = Cards.ALL[battle.hand[i]]
    var view = CardView.new()
-   view.position = Vector2(32 + i * 197, 501)
-   view.size = Vector2(186, 177)
+   view.position = Vector2(32 + i * 197, 486)
+   view.size = Vector2(186, 204)
    view.configure(card, card.cost <= battle.energy)
    view.selected.connect(_play.bind(i))
    add_child(view); buttons.append(view)
@@ -135,7 +136,7 @@ func _mark(label: String, x: float, y: float, scale: float, color: Color) -> voi
    draw_polyline(points, color, maxf(3.0, scale*0.09), true)
   cursor += scale * 0.94
 func _draw() -> void:
- draw_texture_rect(Rooftop, Rect2(0,0,1280,720), false)
+ draw_texture_rect(TitleArt if screen == "title" else Rooftop, Rect2(0,0,1280,720), false)
  draw_rect(Rect2(0,0,1280,720), Color(0.01,0.035,0.07,0.28))
  if screen == "title":
   draw_rect(Rect2(0,0,605,720), Color(0.02,0.07,0.12,0.93))
@@ -153,8 +154,8 @@ func _draw() -> void:
  _display("RANK ZERO",30,29,20,Style.TEXT)
  _text("CONFRONTO",165,28,12,Style.MUTED)
  _display("TURNO %d" % battle.turn,1160,28,16,Style.CYAN)
- _panel(Rect2(25,54,320,83))
- _panel(Rect2(935,54,320,83), Color("a56d6c"))
+ # HUD lives on a single quiet scrim so the arena remains the focus.
+ draw_rect(Rect2(0,42,1280,103),Color(0.025,0.055,0.085,0.78))
  _display("PROTAGONISTA",40,78,17,Style.TEXT)
  _display("CAIO",950,78,17,Style.TEXT)
  _text("VIDA",40,104,11,Style.MUTED)
@@ -167,17 +168,19 @@ func _draw() -> void:
  _display(str(battle.enemy_guard),1195,105,16,Style.CYAN)
  draw_rect(Rect2(40,118,285,5), Color("284454")); draw_rect(Rect2(40,118,285.0*battle.hp/50,5), Style.CYAN)
  draw_rect(Rect2(950,118,285,5), Color("4f3940")); draw_rect(Rect2(950,118,285.0*battle.enemy_hp/45,5), Style.CORAL)
- _panel(Rect2(374,54,532,83), Color("688b9d"))
+ draw_line(Vector2(374,58),Vector2(374,119),Color("75b4c3"),2)
  _text("INTENÇÃO DO RIVAL",390,76,11,Style.MUTED)
  _display(battle.intent.label,390,101,18,Style.CORAL)
  _text("Abertura %d    Desequilíbrio %d" % [battle.opening,battle.off_balance],630,101,12,Style.TEXT)
  draw_rect(Rect2(0,445,1280,275),Color(0.025,0.07,0.115,0.97))
  draw_line(Vector2(0,445),Vector2(1280,445),Color("71dbe9"),2)
- _display("SISTEMA",32,478,19,Style.CYAN)
- _text("ENERGIA",145,476,12,Style.MUTED)
+ _display("SISTEMA",32,476,17,Style.CYAN)
+ _text("ENERGIA",145,475,12,Style.MUTED)
  for i in range(3):
-  draw_circle(Vector2(226 + i*23,471),7,Style.CYAN if i < battle.energy else Color("365364"))
- _text("CONTRA %d" % battle.counter,320,476,12,Style.MUTED)
+  var cx = 227 + i * 23
+  var gem = PackedVector2Array([Vector2(cx,463),Vector2(cx+7,470),Vector2(cx,477),Vector2(cx-7,470)])
+  draw_colored_polygon(gem,Style.CYAN if i < battle.energy else Color("365364"))
+ _text("CONTRA %d" % battle.counter,320,475,12,Style.MUTED)
  _text("%s  ·  COMPRA %d  /  DESCARTE %d" % [battle.log, battle.deck.size(), battle.discard.size()], 38, 708, 12, Style.MUTED)
  if flash > 0: draw_rect(Rect2(0,0,1280,440), Color(0.5,0.9,1.0,flash * 0.2))
  if battle.result != "" and result_visible:
