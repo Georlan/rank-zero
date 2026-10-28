@@ -23,15 +23,15 @@ A animação não determina dano nem a disponibilidade da próxima ação: o mot
 ### Jab — Boxe
 - Guarda compacta; leve transferência de peso para o pé da frente; braço dianteiro segue reto, mão de trás protege o rosto.
 - No momento da extensão, traço curto e estreito na direção do rival. Se o golpe atingir a vida, reação curta na parte superior do corpo; se for absorvido, mostrar choque na Guarda. O punho volta pelo mesmo trajeto.
-- Ritmo-alvo provisório: 0,30–0,45 s. Golpe básico deve ser mais contido que um especial. Atualmente há duas poses (guarda e extensão), mas ainda faltam transições consistentes, resposta sincronizada e efeito de contato.
+- Ritmo-alvo provisório: 0,30–0,45 s. Golpe básico deve ser mais contido que um especial. Protótipo implementado: aproximação, preparação, extensão, retorno e reação sincronizada do rival. A sequência ainda precisa de mais quadros e melhor continuidade entre poses.
 
 ### Guarda — Boxe
 - Cotovelos se fecham, queixo baixa e base estabiliza; uma borda ciano breve identifica a Guarda recebida. A proteção só reage quando dano é efetivamente absorvido.
-- Ritmo-alvo: 0,25–0,40 s. Não representar a defesa como cancelamento da ação inimiga.
+- Ritmo-alvo: 0,25–0,40 s. Não representar a defesa como cancelamento da ação inimiga. Existe uma pose inicial de guarda alta.
 
 ### Finta — Boxe
 - Um início curto de ombro e mão sugere um golpe; ele é recolhido antes da extensão. O rival reage com pequena abertura de postura. Um sinal discreto identifica a condição Abertura sem simular dano.
-- Ritmo-alvo: 0,30–0,45 s. A finta indica uma condição, não exige sequência fixa para o combo.
+- Ritmo-alvo: 0,30–0,45 s. A finta indica uma condição, não exige sequência fixa para o combo. Existe uma sequência curta de preparação e retorno.
 
 ### Projeção — Judô
 - A aproximação e a pegada precisam ser legíveis; com Abertura, o rival perde o eixo, o protagonista entra na distância e gira o quadril, e o rival segue um arco com contato no solo. Recuperação mostra ambos de volta às suas posições de jogo.

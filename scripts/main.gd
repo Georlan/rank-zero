@@ -10,10 +10,14 @@ var buttons: Array[Control] = []
 var flash := 0.0
 var hero_actor: Node2D
 var rival_actor: Node2D
+var pending_jab_result := ""
+var fight_serial := 0
+var result_visible := false
 func _ready() -> void:
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  hero_actor = FighterActor.new(); hero_actor.setup(true); hero_actor.position = Vector2(270, 425); add_child(hero_actor)
  rival_actor = FighterActor.new(); rival_actor.setup(false); rival_actor.position = Vector2(995, 425); add_child(rival_actor)
+ hero_actor.jab_impact.connect(_jab_impact)
  _show_title()
 func _clear_buttons() -> void:
  for b in buttons: b.queue_free()
@@ -32,14 +36,18 @@ func _button(label: String, pos: Vector2, size: Vector2, callback: Callable, col
  add_child(b); buttons.append(b)
  return b
 func _show_title() -> void:
- screen = "title"; hero_actor.hide(); rival_actor.hide(); _clear_buttons()
+ fight_serial += 1; pending_jab_result = ""
+ screen = "title"; hero_actor.reset_actor(); rival_actor.reset_actor(); hero_actor.hide(); rival_actor.hide(); _clear_buttons()
  _button("INICIAR CONFRONTO  →", Vector2(90, 510), Vector2(310, 58), _start, Color("13505d"))
  queue_redraw()
 func _start() -> void:
+ fight_serial += 1; pending_jab_result = ""; result_visible = false
+ hero_actor.reset_actor(); rival_actor.reset_actor()
  battle.start(randi()); screen = "battle"; hero_actor.show(); rival_actor.show(); _refresh()
 func _refresh() -> void:
  _clear_buttons()
  if battle.result != "":
+  result_visible = true
   hero_actor.hide(); rival_actor.hide()
   _button("JOGAR NOVAMENTE", Vector2(485, 480), Vector2(310, 58), _start, Color("13505d"))
   _button("MENU", Vector2(485, 550), Vector2(310, 45), _show_title)
@@ -58,11 +66,33 @@ func _play(index: int) -> void:
  if index < 0 or index >= battle.hand.size(): return
  var id: String = battle.hand[index]
  var effect: String = Cards.ALL[id].effect
+ var old_hp: int = battle.enemy_hp
+ var old_guard: int = battle.enemy_guard
  if battle.play(index):
-  hero_actor.action("jab" if id == "jab" else effect)
-  if effect in ["damage", "throw"]: rival_actor.action("hit")
-  _pulse(); _refresh()
+  if id == "jab":
+   pending_jab_result = "hit" if battle.enemy_hp < old_hp else "guard" if battle.enemy_guard < old_guard else "none"
+   hero_actor.action("jab")
+   if battle.result != "":
+    _clear_buttons()
+    var serial = fight_serial
+    get_tree().create_timer(0.85).timeout.connect(func():
+     if serial == fight_serial and screen == "battle": _refresh()
+    )
+   else: _refresh()
+  else:
+   pending_jab_result = ""
+   hero_actor.action(effect)
+   if effect in ["damage", "throw"]: rival_actor.action("hit")
+   _pulse(); _refresh()
+func _jab_impact() -> void:
+ if screen != "battle" or pending_jab_result == "": return
+ if pending_jab_result == "hit": rival_actor.action("hit")
+ elif pending_jab_result == "guard": rival_actor.action("guard")
+ if pending_jab_result != "none": _pulse()
+ pending_jab_result = ""
 func _end_turn() -> void:
+ pending_jab_result = ""
+ hero_actor.reset_actor()
  var offensive: bool = battle.intent.get("kind", "") != "guard"
  battle.end_turn()
  rival_actor.action("attack" if offensive else "guard")
@@ -94,7 +124,7 @@ func _draw() -> void:
  draw_rect(Rect2(0,0,1280,150), Color(0.025,0.045,0.075,0.85))
  draw_rect(Rect2(0,445,1280,275), Color(0.025,0.045,0.075,0.96))
  draw_line(Vector2(0,445), Vector2(1280,445), Color("54c8d6"), 2)
- draw_rect(Rect2(430,155,420,78), Color(0.025,0.045,0.075,0.87))
+ draw_rect(Rect2(430,53,420,72), Color(0.025,0.045,0.075,0.87))
  _text("RANK ZERO   //   CONFRONTO 01", 35, 38, 19, Color("6ee2ed"))
  _text("TURNO %d" % battle.turn, 1120, 38, 18)
  _text("PROTAGONISTA", 60, 89, 19)
@@ -103,12 +133,12 @@ func _draw() -> void:
  _text("VIDA %d / 45     GUARDA %d" % [battle.enemy_hp, battle.enemy_guard], 868, 118, 18, Color("ffa5a5"))
  draw_rect(Rect2(60,130,300,7), Color("283b49")); draw_rect(Rect2(60,130,300.0*battle.hp/50,7), Color("5bd6e2"))
  draw_rect(Rect2(868,130,300,7), Color("49303a")); draw_rect(Rect2(868,130,300.0*battle.enemy_hp/45,7), Color("f17b81"))
- _text("INTENÇÃO: " + battle.intent.label, 450, 177, 18, Color("ffc78d"))
- _text("ABERTURA %d   ·   DESEQUILÍBRIO %d" % [battle.opening, battle.off_balance], 450, 207, 16, Color("c7d5df"))
+ _text("INTENÇÃO: " + battle.intent.label, 450, 77, 18, Color("ffc78d"))
+ _text("ABERTURA %d   ·   DESEQUILÍBRIO %d" % [battle.opening, battle.off_balance], 450, 105, 16, Color("c7d5df"))
  _text("SISTEMA  /  ENERGIA %d / 3     CONTRA %d" % [battle.energy, battle.counter], 38, 475, 18, Color("73dce7"))
  _text("%s  ·  COMPRA %d  /  DESCARTE %d" % [battle.log, battle.deck.size(), battle.discard.size()], 38, 708, 14, Color("9db1bf"))
  if flash > 0: draw_rect(Rect2(0,0,1280,440), Color(0.5,0.9,1.0,flash * 0.2))
- if battle.result != "":
+ if battle.result != "" and result_visible:
   draw_rect(Rect2(0,0,1280,720), Color(0.02,0.04,0.08,0.91))
   _text("CONFRONTO ENCERRADO", 470, 250, 22, Color("72dce7"))
   _text(battle.result.to_upper(), 465, 350, 70)
